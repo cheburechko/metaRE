@@ -1,0 +1,26 @@
+Package: metaRE
+Type: Package
+Title: Regalatory Element Search via Meta-Analysis
+Description: The search of novel regulatory elements using meta-analysis of
+    differential expression data and regulatory regions' structure.
+Version: 0.1.0
+Authors@R: person("Pavel", "Cherenkov", email = "cherenkov.p.a@yandex.ru",
+    role = c("aut", "cre"))
+License: GPL-3
+Imports:
+    futile.logger (>= 1.4.1),
+    Rcpp (>= 0.12.5),
+    foreach (>= 1.4.3),
+    limma,
+    edgeR,
+    Biobase
+LinkingTo: Rcpp, BH, testthat
+Encoding: UTF-8
+SystemRequirements: C++11
+LazyData: true
+Suggests: testthat,
+    knitr,
+    rmarkdown,
+    doParallel
+RoxygenNote: 6.0.1
+VignetteBuilder: knitr

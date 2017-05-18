@@ -1,0 +1,3 @@
+CXX_STD = CXX11
+SOURCES = $(wildcard Counters/*.cpp DataStructures/*.cpp FlagMapping/*.cpp Pattern/*.cpp Scanner/*.cpp Utils/*.cpp Motifs/*.cpp tests/*.cpp *.cpp)
+OBJECTS = $(SOURCES:.cpp=.o)

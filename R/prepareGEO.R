@@ -1,9 +1,8 @@
 #' @export
 #' @importFrom Biobase assayData
+#' @importFrom GEOquery getGEO GSMList
+#' @importFrom stats setNames
 prepareGEO <- function(control, treatment, isLog2, filename=NULL, GEO=NULL) {
-    if(!require(GEOquery)) {
-        stop("Please install 'GEOquery' package to use this function.")
-    }
     if (is.null(filename) && is.null(GEO)) {
         stop("Either filename or GEO ID must be provided")
     }

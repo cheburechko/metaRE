@@ -1,6 +1,11 @@
 # metaRE
 R package for motif discovery via meta-analysis of microarrays and RNA-Seq
 
+## System requirements
+
+- R >= 3.3.2
+- Compiler with C++11 support
+
 ## Installation
 
 1. Install [Bioconductor](http://www.bioconductor.org/):

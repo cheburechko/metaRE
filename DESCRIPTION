@@ -7,8 +7,9 @@ Version: 0.1.0
 Authors@R: person("Pavel", "Cherenkov", email = "cherenkov.p.a@yandex.ru",
     role = c("aut", "cre"))
 License: GPL-3
+Depends: R (>= 3.3.2)
 Imports:
-    futile.logger (>= 1.4.1),
+    futile.logger (>= 1.4.3),
     Rcpp (>= 0.12.5),
     BH (>= 1.62.0),
     foreach (>= 1.4.3),

@@ -10,10 +10,12 @@ License: GPL-3
 Imports:
     futile.logger (>= 1.4.1),
     Rcpp (>= 0.12.5),
+    BH (>= 1.62.0),
     foreach (>= 1.4.3),
-    limma,
-    edgeR,
-    Biobase
+    limma (>= 3.30.13),
+    edgeR (>= 3.16.5),
+    GEOquery (>= 2.40.0),
+    Biobase (>= 2.34.0)
 LinkingTo: Rcpp, BH, testthat
 Encoding: UTF-8
 SystemRequirements: C++11

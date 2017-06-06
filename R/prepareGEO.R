@@ -14,7 +14,7 @@
 #' prepareGEO(
 #'     c("GSM469656", "GSM469657", "GSM469658"),
 #'     c("GSM469650", "GSM469651", "GSM469652"),
-#'     F
+#'     FALSE
 #' )
 #' @export
 #' @importFrom Biobase assayData

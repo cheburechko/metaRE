@@ -44,7 +44,7 @@ parameter. Each column is a logical vector which tells if a gene (row)
 belongs to this DEG class.
 
 \code{preprocessGeneExpressionData} returns a named list of
-\code{\link{GeneClassifcationMatrix}}, each matrix corresponds to an item in
+\code{\link{GeneClassificationMatrix}}, each matrix corresponds to an item in
 \code{classes}
 }
 \description{

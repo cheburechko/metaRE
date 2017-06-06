@@ -1,58 +1,96 @@
 ---
-title: "Vignette Title"
-author: "Vignette Author"
+title: "Quick Start for metaRE"
+author: "Pavel Cherenkov"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Quick Start for metaRE}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
-Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
+# Overview
+metaRE is an R package for finding cis-regulatory elements associated with 
+significant changes in gene expression in response to a stimulus (hormones, 
+stress etc.). It uses meta-analysis of multiple expression profiling studies and
+a set of gene promoters to analyze, which cis-regulatory elements are associated
+with gene regulation via a stimulus.
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+Analysis is run in five steps:
+- DEG (differientially expressed genes) identification
+- Cis-regulatory element search
+- Calculation of association between cis-regulatory element presence and changes
+in gene expression
+- Meta-analysis
+- Permuation test
 
-## Vignette Info
+In order to walk you through the whole analysis, we will search for hexamers
+that are associated with auxin gene regulation in _Arabidopsis thaliana_
 
-Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
+## DEG identification
+First you need to collect expression profiling studies that test the same 
+hypothesis and then identify DEGs in each of the studies. This package provides 
+tools to simplify acquisition of studies for NCBI GEO database using _GEOquery_
+package and DEG identification using _limma_ and _edgeR_ packages.
 
-## Styles
-
-The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
-
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
-
-## Figures
-
-The figure sizes have been customised so that you can easily put two images side-by-side. 
-
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+There is an example collection of dataset metadata included in package.
+```{r}
+MA_AT_auxin
 ```
 
-You can enable figure captions by `fig_caption: yes` in YAML:
+The above list contains the following data for each dataset:
+- __treatment__ - GEO IDs of samples treated with auxin
+- __control__ - GEO IDs of control samples
+- __name__ - dataset name for further use
+- __log2__ - flag that indicates whether the dataset is stored in logarithmic 
+scale
 
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
+First, the data has to be downloaded and converted to logarithmic scale using
+_prepareGEO_ and prepared for processing by _preprocessGeneExpressionData_
+```{r}
+experiments <- list()
 
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
+for (ma in MA_AT_auxin) {
+    # Download the data from GEO, convert to log2 if necessary.
+    exprs <- prepareGEO(control=ma$control, treatment=ma$treatment,
+                         isLog2=ma$log2)
 
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
+    # Store in experiments for further processing
+    # Here 'type' can be either 'MA' or 'RNA', which tells if dataset is
+    # microarray expression levels or RNA-Seq RNA counts.
+    experiments[[ma$name]] <- list(
+        control=ma$control, treatment=ma$treatment, type="MA", data=exprs
+    )
+}
 ```
 
-Also a quote using `>`:
+You can use _preprocessGeneExpressionData_ to find DEGs in many datasets at once.
+```{r}
+# We will analyze up- and down-regulation separately. We will define 2 
+# functions that will select up- and down- regulated genes in 'classes' varaible.
+logFCThreshold <- log2(1.5)
+pValThreshold <- 0.05
+classes <- list(
+    up=function(df) df$logFC > logFCThreshold & df$adj.P.Val < pValThreshold,
+    down=function(df) df$logFC < -logFCThreshold & df$adj.P.Val < pValThreshold
+)
 
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
+# This will create a list of GeneClassificationMatix objects, one matrix per DEG 
+# class. GeneClassificationMatix is a logical matrix, where each row corresponds
+# to a gene, each column corresponds to a dataset, and values tell if a gene 
+# belongs to this DEG class in this dataset.
+# The last parameter is mulitple testing correction method as accepted by p.adjust
+degs <- preprocessGeneExpressionData(experiments, classes, 'fdr')
+head(degs$up)
+head(degs$down)
+```
+
+You can also process a single dataset with _processMicroarray_ or 
+_processRNACounts_.
+```{r}
+ma <- experiments[[1]]
+# The syntax is exactly the same for processRNACounts
+singleExperiment <- processMicroarray(ma$data, ma$treatment, ma$control, classes, 'fdr')
+
+head(singleExperiment)
+```

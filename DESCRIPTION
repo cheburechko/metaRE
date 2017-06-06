@@ -24,6 +24,7 @@ LazyData: true
 Suggests: testthat,
     knitr,
     rmarkdown,
-    doParallel
+    doParallel,
+    biomaRt
 RoxygenNote: 6.0.1
 VignetteBuilder: knitr

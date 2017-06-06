@@ -6,28 +6,19 @@ prepareGEO <- function(control, treatment, isLog2, filename=NULL, GEO=NULL) {
     if (is.null(filename) && is.null(GEO)) {
         stop("Either filename or GEO ID must be provided")
     }
-
-    eset <- getGEO(GEO=GEO, filename=filename)
+    #eset <- getGEO(GEO=GEO, filename=filename)
     samples <- c(control, treatment)
 
-    if (class(eset) == "GDS") {
-        data <- eset@dataTable@table[, samples]
-        rownames(data) <- eset@dataTable@table$ID_REF
-    } else if (class(eset) == "GSE") {
-        gsmlist <- setNames(lapply(
-            GSMList(eset)[samples],
-            function(x) x@dataTable@table
-        ), samples)
-        data <- data.frame(row.names=as.character(gsmlist[[1]]$ID_REF))
-        for (name in names(gsmlist)) {
-            data[as.character(gsmlist[[name]]$ID_REF), name] <-
-                gsmlist[[name]]$VALUE
+    data <- NULL
+    for (sample in samples) {
+        if (is.null(data)) {
+            data <- Table(getGEO(sample))
+            rownames(data) <- data$ID_REF
+            data[, sample] <- data$VALUE
+            data <- data[, sample, drop=F]
+        } else {
+            data[, sample] <- Table(getGEO(sample))$VALUE
         }
-    } else {
-        if (is.list(eset)) {
-            eset <- eset[[1]]
-        }
-        data <- as.data.frame(assayData(eset)$exprs[, samples])
     }
 
     if (!isLog2) {

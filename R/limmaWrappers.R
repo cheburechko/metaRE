@@ -9,6 +9,43 @@
    return(result)
 }
 
+#' @name preprocessDEGs
+#' @title Extract DEGs from microarrays and RNA-Seq
+#' @param df data frame where column names are samples, row names are gene
+#' names, data is either expression levels or rna counts of genes in given samples
+#' @param treatment character vector, names of treamtment samples
+#' @param control character vector, names of control samples
+#' @param classes named list of functions, each function must take one argument
+#' - a data frame which is returned by \code{\link[limma]{topTable}} function from
+#' \code{\link{limma}} package, and must return a logical vector - genes that
+#' are considered as DEGs.
+#' @param adjust multiple correction method (see \code{\link{p.adjust}})
+#' @param dataList named list of experiments where each item is a list with the
+#' following items:
+#' \describe{
+#'     \item{data}{same as \code{df} parameter}
+#'     \item{treatment}{same as \code{treament} parameter}
+#'     \item{control}{same as \code{control} parameter}
+#'     \item{type}{either 'MA' or 'RNA', describes the type of the dataset}
+#' }
+#' @description Given microarray or RNA-Seq data extract DEGs given user-defined
+#' thresholds on p-values and fold changes.
+#' @details The search is perfromed using \code{\link{limma}} and
+#' \code{\link{edgeR}} packages. User should define the thresholds on DEGs using
+#' \code{classes} parameters. The following columns as returned by
+#' \code{\link[limma]{topTable}} are suggested to be used for filtering:
+#' \describe{
+#'     \item{logFC}{log2-fold-change}
+#'     \item{P.Value}{raw p-value}
+#'     \item{adj.P.Value}{adjusted p-value with \code{adjust} method}
+#' }
+#' @return \code{processMicroarray} and \code{processRNACounts} return data
+#' frame with a column for each class of DEGs as defined in \code{classes}
+#' parameter. Each column is a logical vector which tells if a gene (row)
+#' belongs to this DEG class.
+#'
+#' \code{preprocessGeneExpressionData} returns a
+#' \code{\link{GeneClassifcationMatrix}}
 #' @importFrom limma makeContrasts lmFit contrasts.fit eBayes
 #' @export
 processMicroarray <- function(df, treatment, control, classes, adjust='none') {
@@ -27,6 +64,7 @@ processMicroarray <- function(df, treatment, control, classes, adjust='none') {
    .processFit(fit, classes, adjust)
 }
 
+#' @rdname preprocessDEGs
 #' @importFrom edgeR DGEList calcNormFactors
 #' @importFrom limma voom
 #' @export
@@ -53,6 +91,8 @@ processRNACounts <- function(df, treatment, control, classes, adjust='none') {
    .processFit(fit, classes, adjust)
 }
 
+#' @rdname preprocessDEGs
+#' @export
 preprocessGeneExpressionData <- function(dataList, classes, adjust='none') {
     common_genes <- Reduce(
         function(x, y) intersect(rownames(y$data), x),

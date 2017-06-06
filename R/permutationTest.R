@@ -12,9 +12,7 @@
 #' "two.sided", "greater" or "less"
 #' @param outfile path to file for writing the preliminary results of permuation
 #' test
-#' @param adjust multiple testing correction method
-#' (see \code{\link{p.adjust.methods}})
-#' @param pvaluePreFilter threshold on unadjusted permutation p-value: if the
+#' @param pvaluePreFilter threshold on permutation p-value: if the
 #' hypotheses gets p-value above the threshold, it is excluded from the
 #' analysis.
 #' @param perRun number of permuations for a single run (see Details)
@@ -53,10 +51,6 @@
 #' \item{Permuations}{total number of permutations}
 #' \item{Meta.P.Value}{raw meta p-values}
 #' \item{Permutation.P.Value}{raw permuation p-values}
-#' \item{Adj.Meta.P.Value}{meta p-values adjusted with multiple
-#' testing correction method given by \code{adjust}}
-#' \item{Adj.Permutation.P.Value}{permutation p-values adjusted with multiple
-#' testing correction method given by \code{adjust}}
 #' }
 #' @examples
 #' elements <- 5
@@ -100,7 +94,6 @@ permutationTest <- function(
     hypothesesClasses, annotationClasses, n,
     alternative=c('greater', 'less', 'two.sided'),
     outfile='./perm_test.csv',
-    adjust='bonferroni',
     pvaluePreFilter=NULL,
     perRun=n
 ) {
@@ -131,8 +124,6 @@ permutationTest <- function(
             Permutations=done,
             Meta.P.Value=preparedData$realMetaPValues,
             Permutation.P.Value=permPValue,
-            Adj.Meta.P.Value=p.adjust(preparedData$realMetaPValues, adjust),
-            Adj.Permutation.P.Value=p.adjust(permPValue, adjust),
             row.names = names(preparedData$hypothesesClasses),
             stringsAsFactors=FALSE
         )

@@ -25,7 +25,7 @@ in gene expression
 - Permuation test
 
 In order to walk you through the whole analysis, we will search for hexamers
-that are associated with auxin gene regulation in _Arabidopsis thaliana_
+that are associated with primary auxin response in _Arabidopsis thaliana_.
 
 ## DEG identification
 First you need to collect expression profiling studies that test the same 
@@ -35,6 +35,7 @@ package and DEG identification using _limma_ and _edgeR_ packages.
 
 There is an example collection of dataset metadata included in package.
 ```{r}
+library(metaRE)
 MA_AT_auxin
 ```
 
@@ -86,11 +87,197 @@ head(degs$down)
 ```
 
 You can also process a single dataset with _processMicroarray_ or 
-_processRNACounts_.
+_processRNACounts_. The result will be a data.frame, where rows correspond to 
+genes, columns correspond to DEG class, values tell if a gene belongs to a 
+DEG class.
 ```{r}
 ma <- experiments[[1]]
 # The syntax is exactly the same for processRNACounts
 singleExperiment <- processMicroarray(ma$data, ma$treatment, ma$control, classes, 'fdr')
 
 head(singleExperiment)
+```
+
+You may choose to perform the DEG identification yourself with different set of
+tools, or get dataset from othefr databases. In this case for further analysis 
+you will need to create a GeneClassificationMatrix yourself.
+```{r, eval=FALSE}
+# Let 'up', 'down' be your custom DEG matrix
+genes <- 1000
+exps <- 6
+total <- genes*exps
+
+up <- matrix(runif(total) < 0.05, genes, exps)
+down <- matrix(runif(total) < 0.05, genes, exps)
+custom_degs <- list(
+    up=GeneClassificationMatrix(up),
+    down=GeneClassificationMatrix(down)
+)
+```
+
+## Cis-regulatory element search
+For cis-regulatory element search we will need a character vector of promoters
+(or other regulatory regions) with names that correspond to the same gene names
+that we used in DEG identification.
+
+If you have a fasta file with the needed sequences, I would recommend to use 
+_Biostrings_ package:
+```{r, eval=FALSE}
+promoters <- Biostrings::readDNAStringSet('/path/to/file.fasta')
+promoters <- setNames(as.character(promoters), names(promoters))
+```
+
+In our example though we are going to use _biomaRt_ package to download the 
+sequences:
+```{r}
+library(biomaRt)
+# Connect to Arabidopsis thaliana mart.
+mart <- useMart('plants_mart', host="plants.ensembl.org", dataset='athaliana_eg_gene')
+# Get gene promoters by ATH1 identifiers from our DEG matrix.
+promoters <- getBM(
+    attributes=c("affy_ath1_121501", "gene_flank"),
+    filters=c("affy_ath1_121501","upstream_flank"),
+    values=list(rownames(degs$up), 1500),
+    mart=mart,
+    checkFilters=FALSE,
+    bmHeader=TRUE
+)
+# Convert data.frame to named character vector
+promoters <- setNames(promoters$`Flank (Gene)`, promoters$`AFFY ATH1 121501 probe`)
+```
+
+Now we will enumerate all possible hexamers in these promoters.
+```{r}
+# This function finds all possible oligomers of the fixed length in the promoter
+# vector and returns a GeneClassificationSparse object.
+# By default rc=TRUE which means that oligomers are considered equal to their 
+# reverse complements (e.g. AACCGG == CCGGTT)
+regElements <- enumerateOligomers(promoters, 6)
+
+# The result is a named list of integer vectors. Names are cis-regulatory 
+# elements, vectors are indices of genes in which this elements are present.
+# Gene names are stored in 'geneNames' attribute of the result, which can be
+# accessed by 'geneNames(x)' funciton.
+head(regElements)
+```
+
+This package provides tools to search for:
+- Fixed length oligomers (*enumerateOligomers*)
+- Repeats (*enumerateRepeats*)
+- Spaced dyads with fixed core (*enumerateDyadsWithCore*)
+- Consensuses (*enumeratePatterns*)
+
+If you wish you can provide your own data on presence of cis-regulatory elements
+(e.g. PWM or HMM). In order to use this data you will need to construct a
+_GeneClassificationSparse_ object yourself.
+```{r, eval=FALSE}
+data <- list(
+    elem1=c(1, 5, 10),
+    elem2=c(3, 6, 9),
+    elem3=2
+)
+genes <- paste("gene", 1:10)
+regElements <- GeneClassificationSparse(data, genes)
+```
+
+## Regulation-element association
+Given _GeneClassificationMatrix_ and _GeneClassificationSparse_ object we can
+calculate p-values of association between element presence in promoter and 
+changes in gene expression using _calculateMassContingencyTablePvalues_.
+```{r}
+pvalues <- list()
+
+for (class in names(degs)) {
+    # By default this looks for enrichment.
+    # Use "alternative='less'" for depletion or "alternative='two.sided'" for both.
+    pvalues[[class]] <- calculateMassContingencyTablePvalues(regElements, degs[[class]])
+    
+    # The result is a float matrix of p-values, where rows correspond to 
+    # cis-regulatory elements, columns correspond to datasets, values are raw
+    # p-values.
+    print(class)
+    head(pvalues[[class]])
+}
+
+```
+
+P-values are calculated using Fisher's exact test.
+
+## Meta-analysis
+In the previous step we obtained p-values of enrichment for each individual 
+dataset, now we are going to perform the meta-analysis by combining the 
+p-values using Fisher's combined test.
+```{r}
+metaPvalues <- list()
+
+
+for (class in names(pvalues)) {
+    # 'adjust' is multiple testing correction method
+    # 'threshold' is a cutoff value for adjusted meta p-value
+    metaPvalues[[class]] <- calcMetaAssociation(
+        pvalues[[class]], adjust='bonferroni', threshold=0.05
+    )
+    
+    # The result is a data.frame with Meta.P.Value and Adj.Meta.P.Value columns.
+    # All elements with Adj.Meta.P.Value above cutoff threshold are removed from 
+    # results
+    print(class)
+    head(metaPvalues[[class]])
+}
+```
+
+This and the previous step can be reduced with the following shortcut:
+```{r, eval=FALSE}
+metaPvalues <- list()
+
+for (class in names(degs)) {
+    # This performs both 'calculateMassContingencyTablePvalues' and
+    # 'calcMetaAssociation' in order.
+    metaPvalues[[class]] <- testRegulationHypotheses(
+        regElements, degs[[class]], adjust='bonferroni', threshold=0.05
+    )
+}
+```
+## Permuation test
+The previous step is performed in order to reduce the number of investigated 
+elements for permuation testing. In each permutation genes are assigned a random
+promoter without replacement. Then meta p-value is calculated and compared to
+the original one. Permuation p-value is the rate of random meta p-values
+more extreme than the original one.
+```{r}
+# Enable doParallel backend for parallel processing of permutation test.
+library(doParallel)
+registerDoParallel()
+
+results <- list()
+for (class in names(metaPvalues)) {
+    # Analyze only elements that pass the meta p-value threshold.
+    sigRegElements <- GeneClassificationSparse(
+        regElements[rownames(metaPvalues[[class]])],
+        geneNames(regElements)
+    )
+    
+    # Calculate the number of permutations required to obtain reasonable
+    # p-values to pass the Bonferroni adjusted cutoff threshold
+    threshold <- 0.05
+    n <- integer(length(sigRegElements)*50/threshold)
+    
+    # Permuation test every 'perRun' iterations stores the preliminary results
+    # in 'outfile' and removes elements that in future will not be able to
+    # pass the 'pvaluePreFilter' threshold.
+    outfile <- tempfile()
+    results[[class]] <- metaRE::permutationTest(
+        sigRegElements, degs[[degClass]], n, outfile=outfile,
+        pvaluePreFilter=threshold/length(sigRegElements), perRun=5000
+    )
+    
+    print(class)
+    head(results[[class]])
+    
+    # After the permutation test you can select the elements that pass the
+    # threshold and consider them as significantly associated with stimulus
+    # response.
+    print(results[[class]]$Hypothesis[results[[class]]$Permutation.P.Value < threshold/length(sigRegElements)])
+}
+
 ```

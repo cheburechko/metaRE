@@ -146,13 +146,6 @@ enumeratePatterns <- function(regulatoryRegions, patterns, rc=TRUE,
 #' their reverse complements (default \code{rc=TRUE})
 #' @param output in which format the data should be returned
 #' (see \code{\link{enumerateMotifs}})
-#' @param fuzzySpacer if \code{TRUE}, dyads with the same core and partner
-#' oligomer but different spacers will be counted as the same dyad.
-#' @param fuzzyOrder if \code{TRUE}, dyads with the same core, partner oligomer
-#' and spacer but different order (core is left/right part of dyad) will be
-#' counted as the same dyad.
-#' @param fuzzyOrientation if \code{TRUE} and \code{rc=TRUE} then dyads with
-#' partner and its reverse complement will be counted as the same dyad.
 #' @description Given a list of named regulatory regions, enumerate all possible
 #' repeats with the defined spacer range and return data on their positions in
 #' these regions.

@@ -43,8 +43,9 @@ frame with a column for each class of DEGs as defined in \code{classes}
 parameter. Each column is a logical vector which tells if a gene (row)
 belongs to this DEG class.
 
-\code{preprocessGeneExpressionData} returns a
-\code{\link{GeneClassifcationMatrix}}
+\code{preprocessGeneExpressionData} returns a named list of
+\code{\link{GeneClassifcationMatrix}}, each matrix corresponds to an item in
+\code{classes}
 }
 \description{
 Given microarray or RNA-Seq data extract DEGs given user-defined
@@ -60,4 +61,39 @@ The search is perfromed using \code{\link{limma}} and
     \item{P.Value}{raw p-value}
     \item{adj.P.Value}{adjusted p-value with \code{adjust} method}
 }
+}
+\examples{
+# The following is taken from limma::lmFit examples
+# Simulate gene expression data for 100 probes and 6 microarrays
+# Microarray are in two groups
+# First two probes are differentially expressed in second group
+# Std deviations vary between genes with prior df=4
+sd <- 0.3*sqrt(4/rchisq(100,df=4))
+y <- matrix(rnorm(100*6,sd=sd),100,6)
+rownames(y) <- paste("Gene",1:100)
+colnames(y) <- paste("Experiment", 1:6)
+control <- colnames(y)[1:3]
+treatment <- colnames(y)[4:6]
+y[1:2,4:6] <- y[1:2,4:6] + 2
+ma_data <- y
+
+rna_data <- matrix(as.integer(exp(y)*100), 100, 6)
+rownames(rna_data) <- paste("Gene",1:100)
+colnames(rna_data) <- paste("Experiment", 1:6)
+
+dataList <- list(
+   exp1=list(data=ma_data, control=control, treatment=treatment, type='MA'),
+   exp2=list(data=rna_data, control=control, treatment=treatment, type='RNA')
+)
+
+classes <- list(
+    up=function(df) df$logFC > 0 & df$adj.P.Val < 0.1,
+    down=function(df) df$logFC < 0 & df$adj.P.Val < 0.1
+)
+
+processMicroarray(ma_data, treatment, control, classes, 'fdr')
+processRNACounts(rna_data, treatment, control, classes, 'fdr')
+
+preprocessGeneExpressionData(dataList, classes, 'fdr')
+
 }

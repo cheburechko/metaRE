@@ -27,12 +27,12 @@ prepareGEO <- function(control, treatment, isLog2, id_col='ID_REF', data_col='VA
     for (sample in samples) {
         if (is.null(data)) {
             data <- Table(getGEO(sample))
-            rownames(data) <- data[, id_col]
+            rownames(data) <- as.character(data[, id_col])
             data[, sample] <- data[, data_col]
             data <- data[, sample, drop=F]
         } else {
             buf <- Table(getGEO(sample))
-            data[buf[, id_col], sample] <- buf[, data_col]
+            data[as.character(buf[, id_col]), sample] <- buf[, data_col]
         }
     }
 

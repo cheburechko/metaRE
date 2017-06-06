@@ -39,7 +39,7 @@ partner and its reverse complement will be counted as the same dyad.}
 }
 \description{
 Given a list of named regulatory regions, enumerate all possible
-spaced dyads with a gicen core located within the defined spacer range
+spaced dyads with a given core located within the defined spacer range
 and return data on their positions in these regions.
 }
 \examples{
@@ -69,5 +69,5 @@ result <- enumerateDyadsWithCore(test_sequences, k, 'TGTC', 0, 4,
 result['TGTC_0..4_GGGG']
 }
 \seealso{
-\code{\link{enumerateMotifs}}
+\code{\link{enumerateMotifs}}, \code{\link{enumerateRepeats}}
 }

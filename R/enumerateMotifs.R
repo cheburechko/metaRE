@@ -15,7 +15,7 @@
 #' described in IUPAC nucleotide code with degenerate nucleotides.
 #'
 #' Note that 'U' and '.' are not recognized by these functions.
-#' @seealso \code{\link{enumerateDyadsWithCore}}
+#' @seealso \code{\link{enumerateDyadsWithCore}}, \code{\link{enumerateRepeats}}
 #' @return Type of returned data structure depends on \code{output} parameter:
 #' \describe{
 #'     \item{genes}{named list of integer vectors, names are motifs, each
@@ -82,9 +82,9 @@ enumerateOligomers <- function(regulatoryRegions, k, rc=TRUE,
 #' @param fuzzyOrientation if \code{TRUE} and \code{rc=TRUE} then dyads with
 #' partner and its reverse complement will be counted as the same dyad.
 #' @description Given a list of named regulatory regions, enumerate all possible
-#' spaced dyads with a gicen core located within the defined spacer range
+#' spaced dyads with a given core located within the defined spacer range
 #' and return data on their positions in these regions.
-#' @seealso \code{\link{enumerateMotifs}}
+#' @seealso \code{\link{enumerateMotifs}}, \code{\link{enumerateRepeats}}
 #' @examples
 #' test_sequences <- c(
 #'     gene1='ccccggggtgtcaaaccccc'
@@ -134,6 +134,35 @@ enumeratePatterns <- function(regulatoryRegions, patterns, rc=TRUE,
     ))
 }
 
+#' @name enumerateRepeats
+#' @title Enumerate Repeats
+#' @param regulatoryRegions named charachter vector of nucleotide strings
+#' @param k size of kmers
+#' @param minSpacer minimal distance in base pairs between core and a second
+#' motif
+#' @param maxSpacer maximal distance in base pairs between core and a second
+#' motif
+#' @param rc boolean, \code{TRUE} if motifs should be considered as equal to
+#' their reverse complements (default \code{rc=TRUE})
+#' @param output in which format the data should be returned
+#' (see \code{\link{enumerateMotifs}})
+#' @param fuzzySpacer if \code{TRUE}, dyads with the same core and partner
+#' oligomer but different spacers will be counted as the same dyad.
+#' @param fuzzyOrder if \code{TRUE}, dyads with the same core, partner oligomer
+#' and spacer but different order (core is left/right part of dyad) will be
+#' counted as the same dyad.
+#' @param fuzzyOrientation if \code{TRUE} and \code{rc=TRUE} then dyads with
+#' partner and its reverse complement will be counted as the same dyad.
+#' @description Given a list of named regulatory regions, enumerate all possible
+#' repeats with the defined spacer range and return data on their positions in
+#' these regions.
+#' @seealso \code{\link{enumerateMotifs}}, \code{\link{enumerateDyadsWithCore}}
+#' @examples
+#' test_sequences <- c(
+#'     gene1='acgtacgtacgt'
+#' )
+#' k <- 4
+#' enumerateRepeats(test_sequences, k, -2, 4, output='positions')
 #' @export
 enumerateRepeats <- function(regulatoryRegions, k, minSpacer, maxSpacer,
                              rc=TRUE, output=c('genes', 'counts', 'positions'))

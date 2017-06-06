@@ -64,26 +64,26 @@ context("RepeatCounter") {
 
             CATCH_CHECK_NOTHROW(Verify(
                 Method(data, sGeneInput).Using(0) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aacc"), 4, RepeatCounter::INVERTED), _) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("accc"), 2, RepeatCounter::INVERTED), _) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("cccc"), 0, RepeatCounter::INVERTED), _) +
                 Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aacc"), 4, RepeatCounter::EVERTED), _) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaac"), 2, RepeatCounter::EVERTED), _) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaaa"), 0, RepeatCounter::EVERTED), _) +
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("accc"), 2, RepeatCounter::EVERTED), _) +
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("cccc"), 0, RepeatCounter::EVERTED), _) +
                 Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aacc"), 4, RepeatCounter::INVERTED), _) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("accc"), 2, RepeatCounter::INVERTED), _) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("cccc"), 0, RepeatCounter::INVERTED), _) +
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaac"), 2, RepeatCounter::INVERTED), _) +
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaaa"), 0, RepeatCounter::INVERTED), _) +
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aacc"), 4, RepeatCounter::EVERTED), _) +
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("accc"), 2, RepeatCounter::EVERTED), _) +
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("cccc"), 0, RepeatCounter::EVERTED), _) +
 
                 Method(data, sGeneInput).Using(1) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaaa"), 0, RepeatCounter::INVERTED), _) +
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaaa"), 0, RepeatCounter::EVERTED), _) +
                 Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaaa"), 4, RepeatCounter::DIRECT), _) +
                 Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaat"), 4, RepeatCounter::DIRECT), _) +
                 Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aatt"), 4, RepeatCounter::DIRECT), _) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaat"), 2, RepeatCounter::EVERTED), _) +
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaat"), 2, RepeatCounter::INVERTED), _) +
                 Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("attt"), 4, RepeatCounter::DIRECT), _) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaaa"), 0, RepeatCounter::EVERTED), _) +
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaaa"), 0, RepeatCounter::INVERTED), _) +
                 Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaaa"), 4, RepeatCounter::DIRECT), _) +
-                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaaa"), 0, RepeatCounter::INVERTED), _)
+                Method(data, sElementInput).Using(counter.getID(Utils::stringToInt("aaaa"), 0, RepeatCounter::EVERTED), _)
 
             ));
 

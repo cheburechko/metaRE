@@ -24,18 +24,17 @@ RepeatCounter::RepeatCounter(
 
     const std::function<std::string (unsigned)> elementLabelGenerator =
         [this](unsigned id){
-            unsigned kmer, orientation, spacer;
-            kmer = id % this->kmersTotal;
-            spacer = this->minSpacer + id / this->kmersTotal % (this->window+1);
-            orientation = id / this->kmersTotal / (this->window+1);
+            unsigned kmer = id % this->kmersTotal;
+            int spacer = this->minSpacer + (int)(id / this->kmersTotal % (this->window+1));
+            unsigned orientation = id / this->kmersTotal / (this->window+1);
             std::string label = Utils::intToString(kmer, this->k, true);
             switch(orientation) {
             case DIRECT:
-                return label + '-' + std::to_string(spacer) + '-' + label;
+                return label + '_' + std::to_string(spacer) + '_' + label;
             case INVERTED:
-                return Utils::reverseComplement(label) + '-' + std::to_string(spacer) + '-' + label;
+                return Utils::reverseComplement(label,true) + '_' + std::to_string(spacer) + '_' + label;
             case EVERTED:
-                return label + '-' + std::to_string(spacer) + '-' + Utils::reverseComplement(label);
+                return label + '_' + std::to_string(spacer) + '_' + Utils::reverseComplement(label, true);
             }
             return std::string("NULL");
         };
@@ -77,13 +76,13 @@ void RepeatCounter::step() {
                 if (kmer == center) {
                     result->sElementInput(
                             getID(kmer, spacer, DIRECT),
-                            buffer.absPosition(i)
+                            buffer.absPosition(i+1)
                     );
                 } else if (kmer == plusAndMinus[center] || plusAndMinus[kmer] == center) {
-                    bool orig = center != plusAndMinus[center];
+                    bool orig = center == plusAndMinus[center];
                     result->sElementInput(
                             getID(kmer, spacer, orig ? EVERTED : INVERTED),
-                            buffer.absPosition(i)
+                            buffer.absPosition(i+1)
                     );
                 }
             }

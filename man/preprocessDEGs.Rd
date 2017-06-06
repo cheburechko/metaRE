@@ -26,7 +26,7 @@ names, data is either expression levels or rna counts of genes in given samples}
 \code{\link{limma}} package, and must return a logical vector - genes that
 are considered as DEGs.}
 
-\item{adjust}{multiple corrction method (see \code{\link{p.adjust}})}
+\item{adjust}{multiple correction method (see \code{\link{p.adjust}})}
 
 \item{dataList}{named list of experiments where each item is a list with the
 following items:

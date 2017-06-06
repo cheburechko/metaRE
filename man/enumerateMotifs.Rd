@@ -70,5 +70,5 @@ enumeratePatterns( test_sequences, c('AAAA', 'CCCC'), rc=FALSE, output='position
 enumeratePatterns( test_sequences, c('AAAA', 'CCCC'), rc=TRUE, output='positions')
 }
 \seealso{
-\code{\link{enumerateDyadsWithCore}}
+\code{\link{enumerateDyadsWithCore}}, \code{\link{enumerateRepeats}}
 }

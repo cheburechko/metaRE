@@ -6,8 +6,7 @@
 \usage{
 permutationTest(hypothesesClasses, annotationClasses, n,
   alternative = c("greater", "less", "two.sided"),
-  outfile = "./perm_test.csv", adjust = "bonferroni",
-  pvaluePreFilter = NULL, perRun = n)
+  outfile = "./perm_test.csv", pvaluePreFilter = NULL, perRun = n)
 }
 \arguments{
 \item{hypothesesClasses}{An object of \code{\link{GeneClassificationSparse}}
@@ -25,10 +24,7 @@ experiments}
 \item{outfile}{path to file for writing the preliminary results of permuation
 test}
 
-\item{adjust}{multiple testing correction method
-(see \code{\link{p.adjust.methods}})}
-
-\item{pvaluePreFilter}{threshold on unadjusted permutation p-value: if the
+\item{pvaluePreFilter}{threshold on permutation p-value: if the
 hypotheses gets p-value above the threshold, it is excluded from the
 analysis.}
 
@@ -43,10 +39,6 @@ real meta p-value.}
 \item{Permuations}{total number of permutations}
 \item{Meta.P.Value}{raw meta p-values}
 \item{Permutation.P.Value}{raw permuation p-values}
-\item{Adj.Meta.P.Value}{meta p-values adjusted with multiple
-testing correction method given by \code{adjust}}
-\item{Adj.Permutation.P.Value}{permutation p-values adjusted with multiple
-testing correction method given by \code{adjust}}
 }
 }
 \description{

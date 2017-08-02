@@ -34,7 +34,7 @@ tools to simplify acquisition of studies for NCBI GEO database using _GEOquery_
 package and DEG identification using _limma_ and _edgeR_ packages.
 
 There is an example collection of dataset metadata included in package.
-```{r}
+```{r, eval=FALSE}
 library(metaRE)
 MA_AT_auxin
 ```
@@ -48,7 +48,7 @@ scale
 
 First, the data has to be downloaded and converted to logarithmic scale using
 _prepareGEO_ and prepared for processing by _preprocessGeneExpressionData_
-```{r}
+```{r, eval=FALSE}
 experiments <- list()
 
 for (ma in MA_AT_auxin) {
@@ -66,7 +66,7 @@ for (ma in MA_AT_auxin) {
 ```
 
 You can use _preprocessGeneExpressionData_ to find DEGs in many datasets at once.
-```{r}
+```{r, eval=FALSE}
 # We will analyze up- and down-regulation separately. We will define 2 
 # functions that will select up- and down- regulated genes in 'classes' varaible.
 logFCThreshold <- log2(1.5)
@@ -90,7 +90,7 @@ You can also process a single dataset with _processMicroarray_ or
 _processRNACounts_. The result will be a data.frame, where rows correspond to 
 genes, columns correspond to DEG class, values tell if a gene belongs to a 
 DEG class.
-```{r}
+```{r, eval=FALSE}
 ma <- experiments[[1]]
 # The syntax is exactly the same for processRNACounts
 singleExperiment <- processMicroarray(ma$data, ma$treatment, ma$control, classes, 'fdr')
@@ -129,7 +129,7 @@ promoters <- setNames(as.character(promoters), names(promoters))
 
 In our example though we are going to use _biomaRt_ package to download the 
 sequences:
-```{r}
+```{r, eval=FALSE}
 library(biomaRt)
 # Connect to Arabidopsis thaliana mart.
 mart <- useMart('plants_mart', host="plants.ensembl.org", dataset='athaliana_eg_gene')
@@ -147,7 +147,7 @@ promoters <- setNames(promoters$`Flank (Gene)`, promoters$`AFFY ATH1 121501 prob
 ```
 
 Now we will enumerate all possible hexamers in these promoters.
-```{r}
+```{r, eval=FALSE}
 # This function finds all possible oligomers of the fixed length in the promoter
 # vector and returns a GeneClassificationSparse object.
 # By default rc=TRUE which means that oligomers are considered equal to their 
@@ -184,7 +184,7 @@ regElements <- GeneClassificationSparse(data, genes)
 Given _GeneClassificationMatrix_ and _GeneClassificationSparse_ object we can
 calculate p-values of association between element presence in promoter and 
 changes in gene expression using _calculateMassContingencyTablePvalues_.
-```{r}
+```{r, eval=FALSE}
 pvalues <- list()
 
 for (class in names(degs)) {
@@ -207,7 +207,7 @@ P-values are calculated using Fisher's exact test.
 In the previous step we obtained p-values of enrichment for each individual 
 dataset, now we are going to perform the meta-analysis by combining the 
 p-values using Fisher's combined test.
-```{r}
+```{r, eval=FALSE}
 metaPvalues <- list()
 
 
@@ -244,7 +244,7 @@ elements for permuation testing. In each permutation genes are assigned a random
 promoter without replacement. Then meta p-value is calculated and compared to
 the original one. Permuation p-value is the rate of random meta p-values
 more extreme than the original one.
-```{r}
+```{r, eval=FALSE}
 # Enable doParallel backend for parallel processing of permutation test.
 library(doParallel)
 registerDoParallel()

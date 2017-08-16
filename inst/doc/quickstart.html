@@ -12,7 +12,7 @@
 
 <meta name="author" content="Pavel Cherenkov" />
 
-<meta name="date" content="2017-08-02" />
+<meta name="date" content="2017-08-16" />
 
 <title>Quick Start for metaRE</title>
 
@@ -70,23 +70,38 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 
 <h1 class="title toc-ignore">Quick Start for metaRE</h1>
 <h4 class="author"><em>Pavel Cherenkov</em></h4>
-<h4 class="date"><em>2017-08-02</em></h4>
+<h4 class="date"><em>2017-08-16</em></h4>
 
 
 
 <div id="overview" class="section level1">
 <h1>Overview</h1>
 <p>metaRE is an R package for finding cis-regulatory elements associated with significant changes in gene expression in response to a stimulus (hormones, stress etc.). It uses meta-analysis of multiple expression profiling studies and a set of gene promoters to analyze, which cis-regulatory elements are associated with gene regulation via a stimulus.</p>
-<p>Analysis is run in five steps: - DEG (differientially expressed genes) identification - Cis-regulatory element search - Calculation of association between cis-regulatory element presence and changes in gene expression - Meta-analysis - Permuation test</p>
+<p>Analysis is run in five steps:</p>
+<ul>
+<li>DEG (differientially expressed genes) identification</li>
+<li>Cis-regulatory element search</li>
+<li>Calculation of association between cis-regulatory element presence and changes in gene expression</li>
+<li>Meta-analysis</li>
+<li>Permuation test</li>
+</ul>
 <p>In order to walk you through the whole analysis, we will search for hexamers that are associated with primary auxin response in <em>Arabidopsis thaliana</em>.</p>
-<div id="deg-identification" class="section level2">
-<h2>DEG identification</h2>
+<div id="getting-data-for-analysis" class="section level2">
+<h2>Getting data for analysis</h2>
+<div id="expression-profiling-studies" class="section level3">
+<h3>Expression profiling studies</h3>
 <p>First you need to collect expression profiling studies that test the same hypothesis and then identify DEGs in each of the studies. This package provides tools to simplify acquisition of studies for NCBI GEO database using <em>GEOquery</em> package and DEG identification using <em>limma</em> and <em>edgeR</em> packages.</p>
 <p>There is an example collection of dataset metadata included in package.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(metaRE)
 MA_AT_auxin</code></pre></div>
-<p>The above list contains the following data for each dataset: - <strong>treatment</strong> - GEO IDs of samples treated with auxin - <strong>control</strong> - GEO IDs of control samples - <strong>name</strong> - dataset name for further use - <strong>log2</strong> - flag that indicates whether the dataset is stored in logarithmic scale</p>
-<p>First, the data has to be downloaded and converted to logarithmic scale using <em>prepareGEO</em> and prepared for processing by <em>preprocessGeneExpressionData</em></p>
+<p>The above list contains the following data for each dataset:</p>
+<ul>
+<li><strong>treatment</strong> - GEO IDs of samples treated with auxin</li>
+<li><strong>control</strong> - GEO IDs of control samples</li>
+<li><strong>name</strong> - dataset name for further use</li>
+<li><strong>log2</strong> - flag that indicates whether the dataset is stored in logarithmic scale</li>
+</ul>
+<p>The data has to be downloaded and converted to logarithmic scale using <em>prepareGEO</em> and prepared for processing by <em>preprocessGeneExpressionData</em></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">experiments &lt;-<span class="st"> </span><span class="kw">list</span>()
 
 for (ma in MA_AT_auxin) {
@@ -101,6 +116,48 @@ for (ma in MA_AT_auxin) {
         <span class="dt">control=</span>ma$control, <span class="dt">treatment=</span>ma$treatment, <span class="dt">type=</span><span class="st">&quot;MA&quot;</span>, <span class="dt">data=</span>exprs
     )
 }</code></pre></div>
+</div>
+<div id="regulatory-regions" class="section level3">
+<h3>Regulatory regions</h3>
+<p>For cis-regulatory element search we will need a character vector of promoters (or other regulatory regions) with names that correspond to the same gene names that we used in DEG identification.</p>
+<p>If you have a fasta file with the needed sequences, I would recommend to use <em>Biostrings</em> package:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">promoters &lt;-<span class="st"> </span>Biostrings::<span class="kw">readDNAStringSet</span>(<span class="st">'/path/to/file.fasta'</span>)
+promoters &lt;-<span class="st"> </span><span class="kw">setNames</span>(<span class="kw">as.character</span>(promoters), <span class="kw">names</span>(promoters))</code></pre></div>
+<p>In our example though we are going to use <em>biomaRt</em> package to download the sequences:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(biomaRt)
+<span class="co"># Connect to Arabidopsis thaliana mart.</span>
+mart &lt;-<span class="st"> </span><span class="kw">useMart</span>(<span class="st">'plants_mart'</span>, <span class="dt">host=</span><span class="st">&quot;plants.ensembl.org&quot;</span>, <span class="dt">dataset=</span><span class="st">'athaliana_eg_gene'</span>)
+<span class="co"># Get gene promoters by ATH1 identifiers from our DEG matrix.</span>
+promoters &lt;-<span class="st"> </span><span class="kw">getBM</span>(
+    <span class="dt">attributes=</span><span class="kw">c</span>(<span class="st">&quot;affy_ath1_121501&quot;</span>, <span class="st">&quot;gene_flank&quot;</span>),
+    <span class="dt">filters=</span><span class="kw">c</span>(<span class="st">&quot;upstream_flank&quot;</span>),
+    <span class="dt">values=</span><span class="kw">list</span>(<span class="dv">1500</span>),
+    <span class="dt">mart=</span>mart,
+    <span class="dt">checkFilters=</span><span class="ot">FALSE</span>,
+    <span class="dt">bmHeader=</span><span class="ot">TRUE</span>
+)
+<span class="co"># Convert data.frame to named character vector</span>
+promoters &lt;-<span class="st"> </span><span class="kw">setNames</span>(promoters$<span class="st">`</span><span class="dt">Flank (Gene)</span><span class="st">`</span>, promoters$<span class="st">`</span><span class="dt">AFFY ATH1 121501 probe</span><span class="st">`</span>)</code></pre></div>
+</div>
+<div id="selecting-genes" class="section level3">
+<h3>Selecting genes</h3>
+<p>Promoters and expression profiling studies might have a different set of genes. Before we continue further we need to intersect their gene sets.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># First get the intersection of all datasets</span>
+gene_set &lt;-<span class="st"> </span><span class="kw">names</span>(promoters)
+
+for (expr in experiments) {
+    gene_set &lt;-<span class="st"> </span><span class="kw">intersect</span>(gene_set, <span class="kw">row.names</span>(expr$data))
+}
+
+<span class="co"># Then leave only data for the intersection</span>
+promoters &lt;-<span class="st"> </span>promoters[gene_set]
+for (exprName in <span class="kw">names</span>(experiments)) {
+    experiments[[exprName]]$data &lt;-<span class="st"> </span>experiments[[exprName]]$data[gene_set, ]
+}</code></pre></div>
+</div>
+</div>
+<div id="deg-identification" class="section level2">
+<h2>DEG identification</h2>
 <p>You can use <em>preprocessGeneExpressionData</em> to find DEGs in many datasets at once.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># We will analyze up- and down-regulation separately. We will define 2 </span>
 <span class="co"># functions that will select up- and down- regulated genes in 'classes' varaible.</span>
@@ -140,26 +197,7 @@ custom_degs &lt;-<span class="st"> </span><span class="kw">list</span>(
 </div>
 <div id="cis-regulatory-element-search" class="section level2">
 <h2>Cis-regulatory element search</h2>
-<p>For cis-regulatory element search we will need a character vector of promoters (or other regulatory regions) with names that correspond to the same gene names that we used in DEG identification.</p>
-<p>If you have a fasta file with the needed sequences, I would recommend to use <em>Biostrings</em> package:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">promoters &lt;-<span class="st"> </span>Biostrings::<span class="kw">readDNAStringSet</span>(<span class="st">'/path/to/file.fasta'</span>)
-promoters &lt;-<span class="st"> </span><span class="kw">setNames</span>(<span class="kw">as.character</span>(promoters), <span class="kw">names</span>(promoters))</code></pre></div>
-<p>In our example though we are going to use <em>biomaRt</em> package to download the sequences:</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(biomaRt)
-<span class="co"># Connect to Arabidopsis thaliana mart.</span>
-mart &lt;-<span class="st"> </span><span class="kw">useMart</span>(<span class="st">'plants_mart'</span>, <span class="dt">host=</span><span class="st">&quot;plants.ensembl.org&quot;</span>, <span class="dt">dataset=</span><span class="st">'athaliana_eg_gene'</span>)
-<span class="co"># Get gene promoters by ATH1 identifiers from our DEG matrix.</span>
-promoters &lt;-<span class="st"> </span><span class="kw">getBM</span>(
-    <span class="dt">attributes=</span><span class="kw">c</span>(<span class="st">&quot;affy_ath1_121501&quot;</span>, <span class="st">&quot;gene_flank&quot;</span>),
-    <span class="dt">filters=</span><span class="kw">c</span>(<span class="st">&quot;affy_ath1_121501&quot;</span>,<span class="st">&quot;upstream_flank&quot;</span>),
-    <span class="dt">values=</span><span class="kw">list</span>(<span class="kw">rownames</span>(degs$up), <span class="dv">1500</span>),
-    <span class="dt">mart=</span>mart,
-    <span class="dt">checkFilters=</span><span class="ot">FALSE</span>,
-    <span class="dt">bmHeader=</span><span class="ot">TRUE</span>
-)
-<span class="co"># Convert data.frame to named character vector</span>
-promoters &lt;-<span class="st"> </span><span class="kw">setNames</span>(promoters$<span class="st">`</span><span class="dt">Flank (Gene)</span><span class="st">`</span>, promoters$<span class="st">`</span><span class="dt">AFFY ATH1 121501 probe</span><span class="st">`</span>)</code></pre></div>
-<p>Now we will enumerate all possible hexamers in these promoters.</p>
+<p>Now we will enumerate all possible hexamers in our promoters.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># This function finds all possible oligomers of the fixed length in the promoter</span>
 <span class="co"># vector and returns a GeneClassificationSparse object.</span>
 <span class="co"># By default rc=TRUE which means that oligomers are considered equal to their </span>
@@ -171,7 +209,13 @@ regElements &lt;-<span class="st"> </span><span class="kw">enumerateOligomers</s
 <span class="co"># Gene names are stored in 'geneNames' attribute of the result, which can be</span>
 <span class="co"># accessed by 'geneNames(x)' funciton.</span>
 <span class="kw">head</span>(regElements)</code></pre></div>
-<p>This package provides tools to search for: - Fixed length oligomers (<em>enumerateOligomers</em>) - Repeats (<em>enumerateRepeats</em>) - Spaced dyads with fixed core (<em>enumerateDyadsWithCore</em>) - Consensuses (<em>enumeratePatterns</em>)</p>
+<p>This package provides tools to search for:</p>
+<ul>
+<li>Fixed length oligomers (<em>enumerateOligomers</em>)</li>
+<li>Repeats (<em>enumerateRepeats</em>)</li>
+<li>Spaced dyads with fixed core (<em>enumerateDyadsWithCore</em>)</li>
+<li>Consensuses (<em>enumeratePatterns</em>)</li>
+</ul>
 <p>If you wish you can provide your own data on presence of cis-regulatory elements (e.g. PWM or HMM). In order to use this data you will need to construct a <em>GeneClassificationSparse</em> object yourself.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">data &lt;-<span class="st"> </span><span class="kw">list</span>(
     <span class="dt">elem1=</span><span class="kw">c</span>(<span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">10</span>),
@@ -247,14 +291,14 @@ for (class in <span class="kw">names</span>(metaPvalues)) {
     <span class="co"># Calculate the number of permutations required to obtain reasonable</span>
     <span class="co"># p-values to pass the Bonferroni adjusted cutoff threshold</span>
     threshold &lt;-<span class="st"> </span><span class="fl">0.05</span>
-    n &lt;-<span class="st"> </span><span class="kw">integer</span>(<span class="kw">length</span>(sigRegElements)*<span class="dv">50</span>/threshold)
+    n &lt;-<span class="st"> </span><span class="kw">as.integer</span>(<span class="kw">length</span>(sigRegElements)*<span class="dv">50</span>/threshold)
     
     <span class="co"># Permuation test every 'perRun' iterations stores the preliminary results</span>
     <span class="co"># in 'outfile' and removes elements that in future will not be able to</span>
     <span class="co"># pass the 'pvaluePreFilter' threshold.</span>
     outfile &lt;-<span class="st"> </span><span class="kw">tempfile</span>()
     results[[class]] &lt;-<span class="st"> </span>metaRE::<span class="kw">permutationTest</span>(
-        sigRegElements, degs[[degClass]], n, <span class="dt">outfile=</span>outfile,
+        sigRegElements, degs[[class]], n, <span class="dt">outfile=</span>outfile,
         <span class="dt">pvaluePreFilter=</span>threshold/<span class="kw">length</span>(sigRegElements), <span class="dt">perRun=</span><span class="dv">5000</span>
     )
     

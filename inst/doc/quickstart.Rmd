@@ -17,6 +17,7 @@ a set of gene promoters to analyze, which cis-regulatory elements are associated
 with gene regulation via a stimulus.
 
 Analysis is run in five steps:
+
 - DEG (differientially expressed genes) identification
 - Cis-regulatory element search
 - Calculation of association between cis-regulatory element presence and changes
@@ -27,7 +28,9 @@ in gene expression
 In order to walk you through the whole analysis, we will search for hexamers
 that are associated with primary auxin response in _Arabidopsis thaliana_.
 
-## DEG identification
+## Getting data for analysis
+
+### Expression profiling studies
 First you need to collect expression profiling studies that test the same 
 hypothesis and then identify DEGs in each of the studies. This package provides 
 tools to simplify acquisition of studies for NCBI GEO database using _GEOquery_
@@ -40,13 +43,14 @@ MA_AT_auxin
 ```
 
 The above list contains the following data for each dataset:
+
 - __treatment__ - GEO IDs of samples treated with auxin
 - __control__ - GEO IDs of control samples
 - __name__ - dataset name for further use
 - __log2__ - flag that indicates whether the dataset is stored in logarithmic 
 scale
 
-First, the data has to be downloaded and converted to logarithmic scale using
+The data has to be downloaded and converted to logarithmic scale using
 _prepareGEO_ and prepared for processing by _preprocessGeneExpressionData_
 ```{r, eval=FALSE}
 experiments <- list()
@@ -65,6 +69,56 @@ for (ma in MA_AT_auxin) {
 }
 ```
 
+### Regulatory regions
+For cis-regulatory element search we will need a character vector of promoters
+(or other regulatory regions) with names that correspond to the same gene names
+that we used in DEG identification.
+
+If you have a fasta file with the needed sequences, I would recommend to use 
+_Biostrings_ package:
+```{r, eval=FALSE}
+promoters <- Biostrings::readDNAStringSet('/path/to/file.fasta')
+promoters <- setNames(as.character(promoters), names(promoters))
+```
+
+In our example though we are going to use _biomaRt_ package to download the 
+sequences:
+```{r, eval=FALSE}
+library(biomaRt)
+# Connect to Arabidopsis thaliana mart.
+mart <- useMart('plants_mart', host="plants.ensembl.org", dataset='athaliana_eg_gene')
+# Get gene promoters by ATH1 identifiers from our DEG matrix.
+promoters <- getBM(
+    attributes=c("affy_ath1_121501", "gene_flank"),
+    filters=c("upstream_flank"),
+    values=list(1500),
+    mart=mart,
+    checkFilters=FALSE,
+    bmHeader=TRUE
+)
+# Convert data.frame to named character vector
+promoters <- setNames(promoters$`Flank (Gene)`, promoters$`AFFY ATH1 121501 probe`)
+```
+
+### Selecting genes
+Promoters and expression profiling studies might have a different set of genes.
+Before we continue further we need to intersect their gene sets.
+```{r, eval=FALSE}
+# First get the intersection of all datasets
+gene_set <- names(promoters)
+
+for (expr in experiments) {
+    gene_set <- intersect(gene_set, row.names(expr$data))
+}
+
+# Then leave only data for the intersection
+promoters <- promoters[gene_set]
+for (exprName in names(experiments)) {
+    experiments[[exprName]]$data <- experiments[[exprName]]$data[gene_set, ]
+}
+```
+
+## DEG identification
 You can use _preprocessGeneExpressionData_ to find DEGs in many datasets at once.
 ```{r, eval=FALSE}
 # We will analyze up- and down-regulation separately. We will define 2 
@@ -116,37 +170,7 @@ custom_degs <- list(
 ```
 
 ## Cis-regulatory element search
-For cis-regulatory element search we will need a character vector of promoters
-(or other regulatory regions) with names that correspond to the same gene names
-that we used in DEG identification.
-
-If you have a fasta file with the needed sequences, I would recommend to use 
-_Biostrings_ package:
-```{r, eval=FALSE}
-promoters <- Biostrings::readDNAStringSet('/path/to/file.fasta')
-promoters <- setNames(as.character(promoters), names(promoters))
-```
-
-In our example though we are going to use _biomaRt_ package to download the 
-sequences:
-```{r, eval=FALSE}
-library(biomaRt)
-# Connect to Arabidopsis thaliana mart.
-mart <- useMart('plants_mart', host="plants.ensembl.org", dataset='athaliana_eg_gene')
-# Get gene promoters by ATH1 identifiers from our DEG matrix.
-promoters <- getBM(
-    attributes=c("affy_ath1_121501", "gene_flank"),
-    filters=c("affy_ath1_121501","upstream_flank"),
-    values=list(rownames(degs$up), 1500),
-    mart=mart,
-    checkFilters=FALSE,
-    bmHeader=TRUE
-)
-# Convert data.frame to named character vector
-promoters <- setNames(promoters$`Flank (Gene)`, promoters$`AFFY ATH1 121501 probe`)
-```
-
-Now we will enumerate all possible hexamers in these promoters.
+Now we will enumerate all possible hexamers in our promoters.
 ```{r, eval=FALSE}
 # This function finds all possible oligomers of the fixed length in the promoter
 # vector and returns a GeneClassificationSparse object.
@@ -162,6 +186,7 @@ head(regElements)
 ```
 
 This package provides tools to search for:
+
 - Fixed length oligomers (*enumerateOligomers*)
 - Repeats (*enumerateRepeats*)
 - Spaced dyads with fixed core (*enumerateDyadsWithCore*)
@@ -260,14 +285,14 @@ for (class in names(metaPvalues)) {
     # Calculate the number of permutations required to obtain reasonable
     # p-values to pass the Bonferroni adjusted cutoff threshold
     threshold <- 0.05
-    n <- integer(length(sigRegElements)*50/threshold)
+    n <- as.integer(length(sigRegElements)*50/threshold)
     
     # Permuation test every 'perRun' iterations stores the preliminary results
     # in 'outfile' and removes elements that in future will not be able to
     # pass the 'pvaluePreFilter' threshold.
     outfile <- tempfile()
     results[[class]] <- metaRE::permutationTest(
-        sigRegElements, degs[[degClass]], n, outfile=outfile,
+        sigRegElements, degs[[class]], n, outfile=outfile,
         pvaluePreFilter=threshold/length(sigRegElements), perRun=5000
     )
     
@@ -279,5 +304,4 @@ for (class in names(metaPvalues)) {
     # response.
     print(results[[class]]$Hypothesis[results[[class]]$Permutation.P.Value < threshold/length(sigRegElements)])
 }
-
 ```

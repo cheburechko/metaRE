@@ -19,6 +19,40 @@
 #  }
 
 ## ---- eval=FALSE---------------------------------------------------------
+#  promoters <- Biostrings::readDNAStringSet('/path/to/file.fasta')
+#  promoters <- setNames(as.character(promoters), names(promoters))
+
+## ---- eval=FALSE---------------------------------------------------------
+#  library(biomaRt)
+#  # Connect to Arabidopsis thaliana mart.
+#  mart <- useMart('plants_mart', host="plants.ensembl.org", dataset='athaliana_eg_gene')
+#  # Get gene promoters by ATH1 identifiers from our DEG matrix.
+#  promoters <- getBM(
+#      attributes=c("affy_ath1_121501", "gene_flank"),
+#      filters=c("upstream_flank"),
+#      values=list(1500),
+#      mart=mart,
+#      checkFilters=FALSE,
+#      bmHeader=TRUE
+#  )
+#  # Convert data.frame to named character vector
+#  promoters <- setNames(promoters$`Flank (Gene)`, promoters$`AFFY ATH1 121501 probe`)
+
+## ---- eval=FALSE---------------------------------------------------------
+#  # First get the intersection of all datasets
+#  gene_set <- names(promoters)
+#  
+#  for (expr in experiments) {
+#      gene_set <- intersect(gene_set, row.names(expr$data))
+#  }
+#  
+#  # Then leave only data for the intersection
+#  promoters <- promoters[gene_set]
+#  for (exprName in names(experiments)) {
+#      experiments[[exprName]]$data <- experiments[[exprName]]$data[gene_set, ]
+#  }
+
+## ---- eval=FALSE---------------------------------------------------------
 #  # We will analyze up- and down-regulation separately. We will define 2
 #  # functions that will select up- and down- regulated genes in 'classes' varaible.
 #  logFCThreshold <- log2(1.5)
@@ -56,26 +90,6 @@
 #      up=GeneClassificationMatrix(up),
 #      down=GeneClassificationMatrix(down)
 #  )
-
-## ---- eval=FALSE---------------------------------------------------------
-#  promoters <- Biostrings::readDNAStringSet('/path/to/file.fasta')
-#  promoters <- setNames(as.character(promoters), names(promoters))
-
-## ---- eval=FALSE---------------------------------------------------------
-#  library(biomaRt)
-#  # Connect to Arabidopsis thaliana mart.
-#  mart <- useMart('plants_mart', host="plants.ensembl.org", dataset='athaliana_eg_gene')
-#  # Get gene promoters by ATH1 identifiers from our DEG matrix.
-#  promoters <- getBM(
-#      attributes=c("affy_ath1_121501", "gene_flank"),
-#      filters=c("affy_ath1_121501","upstream_flank"),
-#      values=list(rownames(degs$up), 1500),
-#      mart=mart,
-#      checkFilters=FALSE,
-#      bmHeader=TRUE
-#  )
-#  # Convert data.frame to named character vector
-#  promoters <- setNames(promoters$`Flank (Gene)`, promoters$`AFFY ATH1 121501 probe`)
 
 ## ---- eval=FALSE---------------------------------------------------------
 #  # This function finds all possible oligomers of the fixed length in the promoter
@@ -160,14 +174,14 @@
 #      # Calculate the number of permutations required to obtain reasonable
 #      # p-values to pass the Bonferroni adjusted cutoff threshold
 #      threshold <- 0.05
-#      n <- integer(length(sigRegElements)*50/threshold)
+#      n <- as.integer(length(sigRegElements)*50/threshold)
 #  
 #      # Permuation test every 'perRun' iterations stores the preliminary results
 #      # in 'outfile' and removes elements that in future will not be able to
 #      # pass the 'pvaluePreFilter' threshold.
 #      outfile <- tempfile()
 #      results[[class]] <- metaRE::permutationTest(
-#          sigRegElements, degs[[degClass]], n, outfile=outfile,
+#          sigRegElements, degs[[class]], n, outfile=outfile,
 #          pvaluePreFilter=threshold/length(sigRegElements), perRun=5000
 #      )
 #  
@@ -179,5 +193,4 @@
 #      # response.
 #      print(results[[class]]$Hypothesis[results[[class]]$Permutation.P.Value < threshold/length(sigRegElements)])
 #  }
-#  
 
